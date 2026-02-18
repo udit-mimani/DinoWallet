@@ -1,0 +1,30 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+.vscode/
+*.userprefs
+
+## Published output
+publish/
+
+## NuGet
+*.nupkg
+.nuget/
+
+## Test results
+TestResults/
+coverage/
+*.trx
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Docker volumes (local dev)
+docker/volumes/
+
+## Environment overrides — keep sensitive values out of git
+appsettings.*.local.json
