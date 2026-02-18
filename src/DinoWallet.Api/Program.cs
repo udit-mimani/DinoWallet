@@ -1,8 +1,17 @@
+using DinoWallet.Api.Data;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
+
+// PostgreSQL + EF Core
+builder.Services.AddDbContext<WalletDbContext>(options =>
+    options.UseNpgsql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        npgsql => npgsql.EnableRetryOnFailure(maxRetryCount: 5)));
 
 var app = builder.Build();
 
