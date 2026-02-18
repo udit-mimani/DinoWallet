@@ -45,6 +45,20 @@ builder.Services.AddScoped<IWalletService, WalletService>();
 
 var app = builder.Build();
 
+// Run migrations then seed on every startup
+// (migrations are idempotent; seeder checks existence before inserting)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<WalletDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+
+    logger.LogInformation("Applying database migrations...");
+    await db.Database.MigrateAsync();
+
+    logger.LogInformation("Running database seeder...");
+    await DatabaseSeeder.SeedAsync(db, logger);
+}
+
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // Show Swagger in every environment except Production
