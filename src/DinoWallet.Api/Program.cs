@@ -1,4 +1,5 @@
 using DinoWallet.Api.Data;
+using DinoWallet.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +13,9 @@ builder.Services.AddDbContext<WalletDbContext>(options =>
     options.UseNpgsql(
         builder.Configuration.GetConnectionString("DefaultConnection"),
         npgsql => npgsql.EnableRetryOnFailure(maxRetryCount: 5)));
+
+// Business logic
+builder.Services.AddScoped<IWalletService, WalletService>();
 
 var app = builder.Build();
 
