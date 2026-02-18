@@ -79,3 +79,6 @@ app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
 
 app.Run();
+
+// Expose Program for WebApplicationFactory in integration tests
+public partial class Program { }
