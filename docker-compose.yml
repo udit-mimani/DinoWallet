@@ -1,0 +1,60 @@
+version: "3.9"
+
+# =============================================================================
+# Dino Ventures – Wallet Service
+# Usage: docker compose up --build
+# Swagger UI: http://localhost:8080/swagger
+# =============================================================================
+
+services:
+
+  # ── PostgreSQL 16 ──────────────────────────────────────────────────────────
+  db:
+    image: postgres:16-alpine
+    container_name: dinowallet-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dinowallet
+      POSTGRES_USER: wallet
+      POSTGRES_PASSWORD: wallet123
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wallet -d dinowallet"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  # ── Wallet API ─────────────────────────────────────────────────────────────
+  # The API applies EF Core migrations and seeds data on startup automatically.
+  # Seeding is idempotent — safe to restart without duplicate data.
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dinowallet-api
+    restart: on-failure
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Docker
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__DefaultConnection: >-
+        Host=db;Port=5432;Database=dinowallet;Username=wallet;Password=wallet123;
+        Include Error Detail=true;
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  pg_data:
+    driver: local
