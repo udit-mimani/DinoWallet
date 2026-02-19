@@ -1,0 +1,1030 @@
+{
+	"info": {
+		"_postman_id": "dinowallet-api-collection",
+		"name": "DinoWallet API",
+		"description": "Complete API collection for DinoWallet - Virtual Wallet Service\n\n## Setup\n1. Run the API (docker-compose up or dotnet run)\n2. Execute \"1. Get All Accounts\" first to get account IDs\n3. Set the `aliceId`, `bobId`, and `treasuryId` collection variables\n4. Run other requests\n\n## Flow\n- TopUp: Treasury ? User (purchase credits)\n- Bonus: Treasury ? User (free credits)\n- Spend: User ? Treasury (spend credits)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health & Setup",
+			"item": [
+				{
+					"name": "Health Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has healthy status\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"healthy\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["health"]
+						},
+						"description": "Check if the API is running and healthy."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Accounts",
+			"item": [
+				{
+					"name": "1. Get All Accounts",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response is an array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});",
+									"",
+									"// Auto-set collection variables for Alice, Bob, and Treasury",
+									"var accounts = pm.response.json();",
+									"",
+									"var alice = accounts.find(a => a.name === 'Alice');",
+									"var bob = accounts.find(a => a.name === 'Bob');",
+									"var treasury = accounts.find(a => a.type === 'System' && a.assetSymbol === 'GLD');",
+									"",
+									"if (alice) {",
+									"    pm.collectionVariables.set('aliceId', alice.id);",
+									"    console.log('Set aliceId:', alice.id);",
+									"}",
+									"",
+									"if (bob) {",
+									"    pm.collectionVariables.set('bobId', bob.id);",
+									"    console.log('Set bobId:', bob.id);",
+									"}",
+									"",
+									"if (treasury) {",
+									"    pm.collectionVariables.set('treasuryId', treasury.id);",
+									"    console.log('Set treasuryId:', treasury.id);",
+									"}",
+									"",
+									"pm.test(\"Found Alice, Bob, and Treasury accounts\", function () {",
+									"    pm.expect(alice).to.not.be.undefined;",
+									"    pm.expect(bob).to.not.be.undefined;",
+									"    pm.expect(treasury).to.not.be.undefined;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/accounts",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "accounts"]
+						},
+						"description": "List all wallet accounts (users and treasury).\n\n**Run this first** to auto-populate collection variables for Alice, Bob, and Treasury IDs."
+					},
+					"response": []
+				},
+				{
+					"name": "2. Get Alice's Balance",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has balance fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('accountId');",
+									"    pm.expect(jsonData).to.have.property('accountName');",
+									"    pm.expect(jsonData).to.have.property('balance');",
+									"    pm.expect(jsonData).to.have.property('assetSymbol');",
+									"});",
+									"",
+									"pm.test(\"Balance is a number\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.balance).to.be.a('number');",
+									"});",
+									"",
+									"// Store balance for later comparison",
+									"pm.collectionVariables.set('aliceBalance', pm.response.json().balance);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/accounts/{{aliceId}}/balance",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "accounts", "{{aliceId}}", "balance"]
+						},
+						"description": "Get Alice's current computed balance.\n\nBalance = SUM of all ledger entries for this account."
+					},
+					"response": []
+				},
+				{
+					"name": "3. Get Bob's Balance",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has balance fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('balance');",
+									"});",
+									"",
+									"pm.collectionVariables.set('bobBalance', pm.response.json().balance);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/accounts/{{bobId}}/balance",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "accounts", "{{bobId}}", "balance"]
+						},
+						"description": "Get Bob's current computed balance."
+					},
+					"response": []
+				},
+				{
+					"name": "4. Get Alice's Ledger (Paginated)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Response has pagination fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('totalEntries');",
+									"    pm.expect(jsonData).to.have.property('skip');",
+									"    pm.expect(jsonData).to.have.property('take');",
+									"    pm.expect(jsonData).to.have.property('entries');",
+									"    pm.expect(jsonData).to.have.property('runningBalance');",
+									"});",
+									"",
+									"pm.test(\"Entries is an array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.entries).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/accounts/{{aliceId}}/ledger?skip=0&take=20",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "accounts", "{{aliceId}}", "ledger"],
+							"query": [
+								{
+									"key": "skip",
+									"value": "0"
+								},
+								{
+									"key": "take",
+									"value": "20"
+								}
+							]
+						},
+						"description": "Get paginated ledger history for Alice.\n\nReturns entries ordered by most recent first."
+					},
+					"response": []
+				},
+				{
+					"name": "5. Get Balance - Non-Existent Account (404)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 404\", function () {",
+									"    pm.response.to.have.status(404);",
+									"});",
+									"",
+									"pm.test(\"Response has error field\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('error');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/accounts/00000000-0000-0000-0000-000000000000/balance",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "accounts", "00000000-0000-0000-0000-000000000000", "balance"]
+						},
+						"description": "Attempt to get balance for a non-existent account.\n\nExpected: 404 Not Found"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Wallet Operations",
+			"item": [
+				{
+					"name": "TopUp",
+					"item": [
+						{
+							"name": "1. TopUp Alice - Success",
+							"event": [
+								{
+									"listen": "prerequest",
+									"script": {
+										"exec": [
+											"// Generate unique idempotency key",
+											"pm.collectionVariables.set('topupKey', 'topup-' + pm.variables.replaceIn('{{$guid}}'));"
+										],
+										"type": "text/javascript"
+									}
+								},
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Transaction type is TopUp\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.type).to.eql('TopUp');",
+											"});",
+											"",
+											"pm.test(\"Transaction has 2 ledger entries\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.entries).to.have.lengthOf(2);",
+											"});",
+											"",
+											"pm.test(\"Has debit and credit entries\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    var amounts = jsonData.entries.map(e => e.amount);",
+											"    pm.expect(amounts).to.include(-100); // debit treasury",
+											"    pm.expect(amounts).to.include(100);  // credit alice",
+											"});",
+											"",
+											"// Store transaction ID for idempotency test",
+											"pm.collectionVariables.set('lastTransactionId', pm.response.json().transactionId);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"accountId\": \"{{aliceId}}\",\n    \"treasuryAccountId\": \"{{treasuryId}}\",\n    \"amount\": 100,\n    \"idempotencyKey\": \"{{topupKey}}\",\n    \"description\": \"Purchased 100 Gold Coins\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/wallet/topup",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallet", "topup"]
+								},
+								"description": "Top-up Alice's wallet with 100 GLD.\n\nThis simulates a real-money purchase of credits.\n\n**Flow:** Treasury (debit -100) ? Alice (credit +100)"
+							},
+							"response": []
+						},
+						{
+							"name": "2. TopUp Alice - Idempotent Replay",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Returns same transaction ID (idempotent)\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    var previousTxnId = pm.collectionVariables.get('lastTransactionId');",
+											"    pm.expect(jsonData.transactionId).to.eql(previousTxnId);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"accountId\": \"{{aliceId}}\",\n    \"treasuryAccountId\": \"{{treasuryId}}\",\n    \"amount\": 100,\n    \"idempotencyKey\": \"{{topupKey}}\",\n    \"description\": \"Duplicate request - should return same result\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/wallet/topup",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallet", "topup"]
+								},
+								"description": "Replay the same TopUp request with the same idempotency key.\n\n**Expected:** Returns the original transaction without creating a duplicate. Same transaction ID as previous request."
+							},
+							"response": []
+						},
+						{
+							"name": "3. TopUp - Zero Amount (400)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"accountId\": \"{{aliceId}}\",\n    \"treasuryAccountId\": \"{{treasuryId}}\",\n    \"amount\": 0,\n    \"idempotencyKey\": \"zero-amount-test-{{$guid}}\",\n    \"description\": \"Should fail - zero amount\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/wallet/topup",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallet", "topup"]
+								},
+								"description": "Attempt TopUp with zero amount.\n\n**Expected:** 400 Bad Request"
+							},
+							"response": []
+						},
+						{
+							"name": "4. TopUp - Negative Amount (400)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 400\", function () {",
+											"    pm.response.to.have.status(400);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"accountId\": \"{{aliceId}}\",\n    \"treasuryAccountId\": \"{{treasuryId}}\",\n    \"amount\": -50,\n    \"idempotencyKey\": \"negative-amount-test-{{$guid}}\",\n    \"description\": \"Should fail - negative amount\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/wallet/topup",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallet", "topup"]
+								},
+								"description": "Attempt TopUp with negative amount.\n\n**Expected:** 400 Bad Request"
+							},
+							"response": []
+						},
+						{
+							"name": "5. TopUp - Non-Existent Account (404)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 404\", function () {",
+											"    pm.response.to.have.status(404);",
+											"});",
+											"",
+											"pm.test(\"Response has error field\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('error');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"accountId\": \"00000000-0000-0000-0000-000000000000\",\n    \"treasuryAccountId\": \"{{treasuryId}}\",\n    \"amount\": 100,\n    \"idempotencyKey\": \"nonexistent-account-{{$guid}}\",\n    \"description\": \"Should fail - account not found\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/wallet/topup",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallet", "topup"]
+								},
+								"description": "Attempt TopUp to a non-existent account.\n\n**Expected:** 404 Not Found"
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Bonus",
+					"item": [
+						{
+							"name": "1. Bonus to Bob - Success",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Transaction type is Bonus\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.type).to.eql('Bonus');",
+											"});",
+											"",
+											"pm.test(\"Transaction has 2 ledger entries\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.entries).to.have.lengthOf(2);",
+											"});",
+											"",
+											"pm.test(\"Has correct amounts\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    var amounts = jsonData.entries.map(e => e.amount);",
+											"    pm.expect(amounts).to.include(-50); // debit treasury",
+											"    pm.expect(amounts).to.include(50);  // credit bob",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"accountId\": \"{{bobId}}\",\n    \"treasuryAccountId\": \"{{treasuryId}}\",\n    \"amount\": 50,\n    \"idempotencyKey\": \"bonus-bob-{{$guid}}\",\n    \"description\": \"Referral bonus for inviting a friend\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/wallet/bonus",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallet", "bonus"]
+								},
+								"description": "Issue 50 GLD bonus to Bob.\n\nThis is a free credit (no real money exchanged).\n\n**Flow:** Treasury (debit -50) ? Bob (credit +50)"
+							},
+							"response": []
+						},
+						{
+							"name": "2. Bonus to Alice - Daily Reward",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Transaction type is Bonus\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.type).to.eql('Bonus');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"accountId\": \"{{aliceId}}\",\n    \"treasuryAccountId\": \"{{treasuryId}}\",\n    \"amount\": 25,\n    \"idempotencyKey\": \"daily-reward-alice-{{$guid}}\",\n    \"description\": \"Daily login reward\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/wallet/bonus",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallet", "bonus"]
+								},
+								"description": "Issue daily login reward to Alice."
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Spend",
+					"item": [
+						{
+							"name": "1. Spend - Alice Buys Item (Success)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Transaction type is Spend\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.type).to.eql('Spend');",
+											"});",
+											"",
+											"pm.test(\"Transaction has 2 ledger entries\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.entries).to.have.lengthOf(2);",
+											"});",
+											"",
+											"pm.test(\"Has correct amounts (user debited)\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    var amounts = jsonData.entries.map(e => e.amount);",
+											"    pm.expect(amounts).to.include(-30); // debit alice",
+											"    pm.expect(amounts).to.include(30);  // credit treasury",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"accountId\": \"{{aliceId}}\",\n    \"treasuryAccountId\": \"{{treasuryId}}\",\n    \"amount\": 30,\n    \"idempotencyKey\": \"spend-alice-item-{{$guid}}\",\n    \"description\": \"Purchased Premium Sword\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/wallet/spend",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallet", "spend"]
+								},
+								"description": "Alice spends 30 GLD to buy an in-app item.\n\n**Flow:** Alice (debit -30) ? Treasury (credit +30)"
+							},
+							"response": []
+						},
+						{
+							"name": "2. Spend - Insufficient Funds (422)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 422\", function () {",
+											"    pm.response.to.have.status(422);",
+											"});",
+											"",
+											"pm.test(\"Error message contains 'Insufficient'\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.error).to.include('Insufficient');",
+											"});",
+											"",
+											"pm.test(\"Response has detail with balance info\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData).to.have.property('detail');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"accountId\": \"{{bobId}}\",\n    \"treasuryAccountId\": \"{{treasuryId}}\",\n    \"amount\": 999999,\n    \"idempotencyKey\": \"spend-insufficient-{{$guid}}\",\n    \"description\": \"Should fail - not enough balance\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/wallet/spend",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallet", "spend"]
+								},
+								"description": "Attempt to spend more than the account balance.\n\n**Expected:** 422 Unprocessable Entity with insufficient funds error."
+							},
+							"response": []
+						},
+						{
+							"name": "3. Spend - Bob Unlocks Level",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Transaction type is Spend\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.type).to.eql('Spend');",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"accountId\": \"{{bobId}}\",\n    \"treasuryAccountId\": \"{{treasuryId}}\",\n    \"amount\": 20,\n    \"idempotencyKey\": \"spend-bob-level-{{$guid}}\",\n    \"description\": \"Unlocked Level 5\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/wallet/spend",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallet", "spend"]
+								},
+								"description": "Bob spends 20 GLD to unlock a game level."
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "End-to-End Scenarios",
+			"item": [
+				{
+					"name": "Scenario: Complete User Journey",
+					"item": [
+						{
+							"name": "Step 1: Check Initial Balance",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"var balance = pm.response.json().balance;",
+											"pm.collectionVariables.set('scenarioInitialBalance', balance);",
+											"console.log('Initial balance:', balance);"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/accounts/{{aliceId}}/balance",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "accounts", "{{aliceId}}", "balance"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Step 2: TopUp 200 GLD",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"accountId\": \"{{aliceId}}\",\n    \"treasuryAccountId\": \"{{treasuryId}}\",\n    \"amount\": 200,\n    \"idempotencyKey\": \"scenario-topup-{{$guid}}\",\n    \"description\": \"Scenario: TopUp 200 GLD\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/wallet/topup",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallet", "topup"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Step 3: Verify Balance After TopUp",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Balance increased by 200\", function () {",
+											"    var initialBalance = pm.collectionVariables.get('scenarioInitialBalance');",
+											"    var currentBalance = pm.response.json().balance;",
+											"    pm.expect(currentBalance).to.eql(initialBalance + 200);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/accounts/{{aliceId}}/balance",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "accounts", "{{aliceId}}", "balance"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Step 4: Spend 75 GLD",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"accountId\": \"{{aliceId}}\",\n    \"treasuryAccountId\": \"{{treasuryId}}\",\n    \"amount\": 75,\n    \"idempotencyKey\": \"scenario-spend-{{$guid}}\",\n    \"description\": \"Scenario: Spend 75 GLD\"\n}"
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/wallet/spend",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "wallet", "spend"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Step 5: Verify Final Balance",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Balance is initial + 200 - 75\", function () {",
+											"    var initialBalance = pm.collectionVariables.get('scenarioInitialBalance');",
+											"    var expectedBalance = initialBalance + 200 - 75;",
+											"    var currentBalance = pm.response.json().balance;",
+											"    pm.expect(currentBalance).to.eql(expectedBalance);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/accounts/{{aliceId}}/balance",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "accounts", "{{aliceId}}", "balance"]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Step 6: View Ledger History",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"exec": [
+											"pm.test(\"Status code is 200\", function () {",
+											"    pm.response.to.have.status(200);",
+											"});",
+											"",
+											"pm.test(\"Ledger has entries\", function () {",
+											"    var jsonData = pm.response.json();",
+											"    pm.expect(jsonData.entries.length).to.be.greaterThan(0);",
+											"});"
+										],
+										"type": "text/javascript"
+									}
+								}
+							],
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{baseUrl}}/api/accounts/{{aliceId}}/ledger?skip=0&take=10",
+									"host": ["{{baseUrl}}"],
+									"path": ["api", "accounts", "{{aliceId}}", "ledger"],
+									"query": [
+										{
+											"key": "skip",
+											"value": "0"
+										},
+										{
+											"key": "take",
+											"value": "10"
+										}
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:5000",
+			"type": "string"
+		},
+		{
+			"key": "aliceId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "bobId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "treasuryId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "topupKey",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "lastTransactionId",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "aliceBalance",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "bobBalance",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "scenarioInitialBalance",
+			"value": "",
+			"type": "string"
+		}
+	]
+}
