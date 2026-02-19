@@ -202,110 +202,116 @@ public class WalletService : IWalletService
         var creditId = isCreditToUser ? userAccountId : treasuryId;
 
         // Steps 3-10 — single atomic transaction
-        await using var dbTxn = await _db.Database.BeginTransactionAsync(
-            IsolationLevel.ReadCommitted, ct);
-        try
+        // Steps 3-10 — wrapped in execution strategy to support retry-on-failure with manual transactions
+        var strategy = _db.Database.CreateExecutionStrategy();
+        
+        return await strategy.ExecuteAsync(async () =>
         {
-            // Step 4 — advisory locks in ascending UUID order prevents deadlocks.
-            // hashtext() maps the UUID string to an int8 advisory lock slot.
-            // pg_advisory_xact_lock auto-releases on COMMIT/ROLLBACK.
-            foreach (var lockId in new[] { debitId, creditId }.Distinct().OrderBy(id => id))
+            await using var dbTxn = await _db.Database.BeginTransactionAsync(
+                IsolationLevel.ReadCommitted, ct);
+            try
             {
-                await _db.Database.ExecuteSqlRawAsync(
-                    "SELECT pg_advisory_xact_lock(hashtext({0}))",
-                    lockId,
-                    ct);
-            }
-
-            // Step 5 — re-check idempotency after acquiring the lock.
-            // Two identical requests can both pass the pre-check; only one can win the lock.
-            // The winner inserts; the loser finds the record here and returns the cached result.
-            var innerCheck = await _db.IdempotencyRecords
-                .FirstOrDefaultAsync(r => r.Key == idempotencyKey, ct);
-            if (innerCheck != null)
-            {
-                _logger.LogInformation("Idempotent (inner-check) key={Key}", idempotencyKey);
-                await dbTxn.RollbackAsync(ct);
-                return await BuildResponseFromTransactionId(innerCheck.TransactionId, ct);
-            }
-
-            // Step 6 — row-level locks via SELECT … FOR UPDATE.
-            // EF Core does not support .Include() after .FromSqlRaw(), so we lock
-            // the rows here and load navigation properties separately below.
-            var lockedDebit = await _db.Accounts
-                .FromSqlRaw("""SELECT * FROM "Accounts" WHERE "Id" = {0} FOR UPDATE""", debitId)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(ct)
-                ?? throw new AccountNotFoundException(debitId);
-
-            var lockedCredit = await _db.Accounts
-                .FromSqlRaw("""SELECT * FROM "Accounts" WHERE "Id" = {0} FOR UPDATE""", creditId)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(ct)
-                ?? throw new AccountNotFoundException(creditId);
-
-            // Step 7 — balance check (Spend only).
-            // Runs after the FOR UPDATE lock so we see committed, non-stale balance.
-            if (!isCreditToUser)
-            {
-                var balance = await _db.LedgerEntries
-                    .Where(e => e.AccountId == debitId)
-                    .SumAsync(e => e.Amount, ct);
-
-                if (balance < amount)
+                // Step 4 — advisory locks in ascending UUID order prevents deadlocks.
+                // hashtext() maps the UUID string to an int8 advisory lock slot.
+                // pg_advisory_xact_lock auto-releases on COMMIT/ROLLBACK.
+                foreach (var lockId in new[] { debitId, creditId }.Distinct().OrderBy(id => id))
                 {
-                    await dbTxn.RollbackAsync(ct);
-                    throw new InsufficientFundsException(balance, amount);
+                    await _db.Database.ExecuteSqlRawAsync(
+                        "SELECT pg_advisory_xact_lock(hashtext({0}::text))",
+                        new object[] { lockId.ToString() },
+                        ct);
                 }
+
+                // Step 5 — re-check idempotency after acquiring the lock.
+                // Two identical requests can both pass the pre-check; only one can win the lock.
+                // The winner inserts; the loser finds the record here and returns the cached result.
+                var innerCheck = await _db.IdempotencyRecords
+                    .FirstOrDefaultAsync(r => r.Key == idempotencyKey, ct);
+                if (innerCheck != null)
+                {
+                    _logger.LogInformation("Idempotent (inner-check) key={Key}", idempotencyKey);
+                    await dbTxn.RollbackAsync(ct);
+                    return await BuildResponseFromTransactionId(innerCheck.TransactionId, ct);
+                }
+
+                // Step 6 — row-level locks via SELECT … FOR UPDATE.
+                // EF Core does not support .Include() after .FromSqlRaw(), so we lock
+                // the rows here and load navigation properties separately below.
+                var lockedDebit = await _db.Accounts
+                    .FromSqlRaw("SELECT * FROM \"Accounts\" WHERE \"Id\" = {0} FOR UPDATE", debitId)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(ct)
+                    ?? throw new AccountNotFoundException(debitId);
+
+                var lockedCredit = await _db.Accounts
+                    .FromSqlRaw("SELECT * FROM \"Accounts\" WHERE \"Id\" = {0} FOR UPDATE", creditId)
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(ct)
+                    ?? throw new AccountNotFoundException(creditId);
+
+                // Step 7 — balance check (Spend only).
+                // Runs after the FOR UPDATE lock so we see committed, non-stale balance.
+                if (!isCreditToUser)
+                {
+                    var balance = await _db.LedgerEntries
+                        .Where(e => e.AccountId == debitId)
+                        .SumAsync(e => e.Amount, ct);
+
+                    if (balance < amount)
+                    {
+                        await dbTxn.RollbackAsync(ct);
+                        throw new InsufficientFundsException(balance, amount);
+                    }
+                }
+
+                // Step 8 — double-entry: every event creates exactly two ledger lines.
+                // Debit line: negative (money leaving source)
+                // Credit line: positive (money entering destination)
+                var now = DateTime.UtcNow;
+                var transaction = new Transaction
+                {
+                    Type = type,
+                    Description = string.IsNullOrWhiteSpace(description) ? type.ToString() : description,
+                    IdempotencyKey = idempotencyKey,
+                    CreatedAt = now,
+                    Entries =
+                    [
+                        new LedgerEntry { AccountId = debitId,  Amount = -amount, CreatedAt = now },
+                        new LedgerEntry { AccountId = creditId, Amount =  amount, CreatedAt = now }
+                    ]
+                };
+                _db.Transactions.Add(transaction);
+                await _db.SaveChangesAsync(ct);
+                // transaction.Id is now populated by PostgreSQL IDENTITY column
+
+                // Step 9 — store idempotency record with the real TransactionId.
+                _db.IdempotencyRecords.Add(new IdempotencyRecord
+                {
+                    Key = idempotencyKey,
+                    TransactionId = transaction.Id,
+                    CreatedAt = now
+                });
+                await _db.SaveChangesAsync(ct);
+
+                // Step 10 — commit
+                await dbTxn.CommitAsync(ct);
+
+                _logger.LogInformation(
+                    "Committed txn={Id} type={Type} key={Key} debit={Debit} credit={Credit} amount={Amount}",
+                    transaction.Id, type, idempotencyKey, debitId, creditId, amount);
+
+                return MapToResponse(transaction, lockedDebit, lockedCredit);
             }
-
-            // Step 8 — double-entry: every event creates exactly two ledger lines.
-            // Debit line: negative (money leaving source)
-            // Credit line: positive (money entering destination)
-            var now = DateTime.UtcNow;
-            var transaction = new Transaction
+            catch (Exception ex) when (ex is not InsufficientFundsException
+                                           and not AccountNotFoundException
+                                           and not InvalidAmountException
+                                           and not InvalidOperationException)
             {
-                Type = type,
-                Description = string.IsNullOrWhiteSpace(description) ? type.ToString() : description,
-                IdempotencyKey = idempotencyKey,
-                CreatedAt = now,
-                Entries =
-                [
-                    new LedgerEntry { AccountId = debitId,  Amount = -amount, CreatedAt = now },
-                    new LedgerEntry { AccountId = creditId, Amount =  amount, CreatedAt = now }
-                ]
-            };
-            _db.Transactions.Add(transaction);
-            await _db.SaveChangesAsync(ct);
-            // transaction.Id is now populated by PostgreSQL IDENTITY column
-
-            // Step 9 — store idempotency record with the real TransactionId.
-            _db.IdempotencyRecords.Add(new IdempotencyRecord
-            {
-                Key = idempotencyKey,
-                TransactionId = transaction.Id,
-                CreatedAt = now
-            });
-            await _db.SaveChangesAsync(ct);
-
-            // Step 10 — commit
-            await dbTxn.CommitAsync(ct);
-
-            _logger.LogInformation(
-                "Committed txn={Id} type={Type} key={Key} debit={Debit} credit={Credit} amount={Amount}",
-                transaction.Id, type, idempotencyKey, debitId, creditId, amount);
-
-            return MapToResponse(transaction, lockedDebit, lockedCredit);
-        }
-        catch (Exception ex) when (ex is not InsufficientFundsException
-                                       and not AccountNotFoundException
-                                       and not InvalidAmountException
-                                       and not InvalidOperationException)
-        {
-            try { await dbTxn.RollbackAsync(CancellationToken.None); } catch { /* best-effort */ }
-            _logger.LogError(ex, "Unexpected error, transaction rolled back. key={Key}", idempotencyKey);
-            throw;
-        }
+                try { await dbTxn.RollbackAsync(CancellationToken.None); } catch { /* best-effort */ }
+                _logger.LogError(ex, "Unexpected error, transaction rolled back. key={Key}", idempotencyKey);
+                throw;
+            }
+        });
     }
 
     // ── Helpers ────────────────────────────────────────────────────────────────
