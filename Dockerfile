@@ -3,7 +3,7 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
 # Copy project files and restore (layer-cached until .csproj changes)
-COPY DinoWallet.sln ./
+COPY DinoWallet.slnx ./
 COPY src/DinoWallet.Api/DinoWallet.Api.csproj ./src/DinoWallet.Api/
 RUN dotnet restore src/DinoWallet.Api/DinoWallet.Api.csproj
 

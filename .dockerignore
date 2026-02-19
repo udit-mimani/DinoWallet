@@ -1,6 +1,49 @@
-.vs/
+# Build outputs - these SHOULD be ignored
 bin/
 obj/
+publish/
+
+# Test results
+TestResults/
+*.trx
+coverage/
+
+# IDE and OS files
+.vs/
+.vscode/
+.idea/
 *.user
-*.lock
+*.suo
+.DS_Store
+Thumbs.db
+
+# Git
 .git/
+.gitignore
+.gitattributes
+
+# Documentation that isn't needed in the image
+*.md
+!README.md
+docs/
+
+# Docker itself
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# NuGet packages (will be restored during build)
+packages/
+*.nupkg
+
+# Logs and temp
+*.log
+tmp/
+temp/
+
+# DO NOT IGNORE THESE - they are needed for the build:
+# ✅ .sln files
+# ✅ .csproj files  
+# ✅ .cs source files
+# ✅ appsettings*.json
+# ✅ Any other source code
