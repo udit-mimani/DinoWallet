@@ -75,6 +75,8 @@ app.UseSwaggerUI(c =>
 
 app.MapControllers();
 
+// Redirect root to Swagger UI
+app.MapGet("/", () => Results.Redirect("/swagger"));
 // Health-check endpoint (useful for docker-compose healthcheck and load balancers)
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
 
