@@ -62,16 +62,16 @@ using (var scope = app.Services.CreateScope())
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
 // Show Swagger in every environment except Production
-if (!app.Environment.IsProduction())
+//if (!app.Environment.IsProduction())
+//{
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Wallet Service v1");
-        c.RoutePrefix = "swagger";
-        c.DisplayRequestDuration();
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Wallet Service v1");
+    c.RoutePrefix = "swagger";
+    c.DisplayRequestDuration();
+});
+//}
 
 app.MapControllers();
 
