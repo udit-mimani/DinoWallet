@@ -7,6 +7,76 @@ A production-ready internal wallet service for managing virtual credits (Gold Co
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+## 🌐 Live Demo
+
+The service is deployed on **Render** (free tier) with a managed **PostgreSQL** database.
+
+| | URL |
+|---|---|
+| 🏠 Base URL | https://dinowallet.onrender.com |
+| 📖 Swagger UI | https://dinowallet.onrender.com/swagger |
+| ❤️ Health Check | https://dinowallet.onrender.com/health |
+
+> **Note:** This is hosted on Render's free tier. The first request after a period of inactivity
+> may take **20–30 seconds** to wake the instance. Subsequent requests are fast.
+> The database is always on and pre-seeded with asset types, treasury accounts, Alice, and Bob.
+
+### 🧪 Try It Instantly (No Setup Required)
+
+Open the [Swagger UI](https://dinowallet.onrender.com/swagger) and run these in order:
+
+**1. Check seeded accounts**
+```
+GET /api/accounts
+```
+
+**2. Check Alice's balance**
+```
+GET /api/accounts/{aliceId}/balance
+```
+
+**3. Top-up Alice's wallet**
+```
+POST /api/wallet/topup
+{
+  "accountId": "<aliceId>",
+  "treasuryAccountId": "<treasuryId>",
+  "amount": 100,
+  "idempotencyKey": "demo-topup-001",
+  "description": "Purchased 100 Gold Coins"
+}
+```
+
+**4. Give Alice a bonus**
+```
+POST /api/wallet/bonus
+{
+  "accountId": "<aliceId>",
+  "amount": 50,
+  "idempotencyKey": "demo-bonus-001",
+  "description": "Referral bonus"
+}
+```
+
+**5. Alice spends credits**
+```
+POST /api/wallet/spend
+{
+  "accountId": "<aliceId>",
+  "amount": 30,
+  "idempotencyKey": "demo-spend-001",
+  "description": "Purchased Premium Sword"
+}
+```
+
+**6. View Alice's full ledger**
+```
+GET /api/accounts/{aliceId}/ledger
+```
+
+> 💡 Use the **Postman collection** in `/postman` for a pre-wired end-to-end test suite with
+> environment variables already configured for the live URL.
+
 ---
 
 ## 📋 Table of Contents
@@ -20,6 +90,7 @@ A production-ready internal wallet service for managing virtual credits (Gold Co
 - [Testing](#-testing)
 - [Configuration](#-configuration)
 - [Postman Collection](#-postman-collection)
+- [Deployment](#-deployment)
 - [Contributing](#-contributing)
 
 ---
@@ -546,6 +617,45 @@ DinoWallet/
 ├── DinoWallet.sln
 └── README.md
 ```
+
+---
+
+## ☁️ Deployment
+
+This project is deployed using **Render** (Web Service + PostgreSQL).
+
+### Infrastructure
+
+| Component | Service | Plan |
+|---|---|---|
+| API | Render Web Service (Docker) | Free |
+| Database | Render PostgreSQL | Free |
+
+### How It Works
+
+- Render builds the Docker image directly from the `Dockerfile` in the repo root
+- On every startup, the app automatically runs **EF Core migrations** and the **DatabaseSeeder** — no manual SQL needed
+- The database is pre-seeded with asset types (GLD, DIA, LPT), treasury accounts, and two users (Alice, Bob)
+- Deployments are triggered automatically on every push to `main`
+
+### Environment Variables (set on Render)
+
+| Variable | Description |
+|---|---|
+| `ConnectionStrings__DefaultConnection` | Render PostgreSQL internal connection string (Npgsql format) |
+
+### Re-deploying Yourself
+
+If you want to deploy your own instance:
+
+1. Fork this repo
+2. Create a **PostgreSQL** database on [Render](https://render.com) (free tier)
+3. Create a **Web Service** on Render, connect your fork, set runtime to **Docker**
+4. Add the environment variable `ConnectionStrings__DefaultConnection` with the Npgsql-formatted connection string:
+   ```
+   Host=<host>;Database=<db>;Username=<user>;Password=<pass>;SSL Mode=Require;Trust Server Certificate=true
+   ```
+5. Deploy — migrations and seeding run automatically on first boot
 
 ---
 
