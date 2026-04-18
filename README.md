@@ -1,4 +1,4 @@
-# 🦕 DinoWallet - Virtual Wallet Service
+# 🦕 LedgerX - Virtual Wallet Service
 
 A production-ready internal wallet service for managing virtual credits (Gold Coins, Diamonds, Loyalty Points) with **double-entry bookkeeping**, **idempotency guarantees**, and **deadlock-free concurrency**.
 
@@ -13,9 +13,9 @@ The service is deployed on **Render** (free tier) with a managed **PostgreSQL** 
 
 | | URL |
 |---|---|
-| 🏠 Base URL | https://dinowallet.onrender.com |
-| 📖 Swagger UI | https://dinowallet.onrender.com/swagger |
-| ❤️ Health Check | https://dinowallet.onrender.com/health |
+| 🏠 Base URL | https://ledgerx.onrender.com |
+| 📖 Swagger UI | https://ledgerx.onrender.com/swagger |
+| ❤️ Health Check | https://ledgerx.onrender.com/health |
 
 > **Note:** This is hosted on Render's free tier. The first request after a period of inactivity
 > may take **20–30 seconds** to wake the instance. Subsequent requests are fast.
@@ -23,7 +23,7 @@ The service is deployed on **Render** (free tier) with a managed **PostgreSQL** 
 
 ### 🧪 Try It Instantly (No Setup Required)
 
-Open the [Swagger UI](https://dinowallet.onrender.com/swagger) and run these in order:
+Open the [Swagger UI](https://ledgerx.onrender.com/swagger) and run these in order:
 
 **1. Check seeded accounts**
 ```
@@ -113,7 +113,7 @@ GET /api/accounts/{aliceId}/ledger
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         DinoWallet API                              │
+│                         LedgerX API                              │
 ├─────────────────────────────────────────────────────────────────────┤
 │  Controllers                                                        │
 │  ├── WalletController     POST /api/wallet/topup|bonus|spend       │
@@ -160,8 +160,8 @@ Spend:        User Account ──(-amount)──► Treasury ──(+amount)─�
 
 ```bash
 # Clone the repository
-git clone https://github.com/udit-mimani/DinoWallet.git
-cd DinoWallet
+git clone https://github.com/udit-mimani/LedgerX.git
+cd LedgerX
 
 # Start all services
 docker-compose up -d
@@ -177,18 +177,18 @@ docker-compose logs -f api
 
 ```bash
 # Clone the repository
-git clone https://github.com/udit-mimani/DinoWallet.git
-cd DinoWallet
+git clone https://github.com/udit-mimani/LedgerX.git
+cd LedgerX
 
 # Start PostgreSQL (if not running)
 docker run -d --name postgres -p 5432:5432 \
   -e POSTGRES_USER=wallet \
   -e POSTGRES_PASSWORD=wallet123 \
-  -e POSTGRES_DB=dinowallet \
+  -e POSTGRES_DB=ledgerx \
   postgres:16
 
 # Run the API
-cd src/DinoWallet.Api
+cd src/LedgerX.Api
 dotnet run
 
 # API available at http://localhost:5000
@@ -205,7 +205,7 @@ podman-compose build --no-cache
 podman-compose up -d
 
 # View logs
-podman logs dinowallet-api -f
+podman logs ledgerx-api -f
 ```
 
 ---
@@ -454,7 +454,7 @@ dotnet test
 Integration tests use [Testcontainers](https://testcontainers.com/) to spin up a real PostgreSQL instance:
 
 ```bash
-cd tests/DinoWallet.IntegrationTests
+cd tests/LedgerX.IntegrationTests
 dotnet test
 ```
 
@@ -491,7 +491,7 @@ Test summary: total: 16, failed: 0, succeeded: 16, skipped: 0
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Host=localhost;Port=5432;Database=dinowallet;Username=wallet;Password=wallet123"
+    "DefaultConnection": "Host=localhost;Port=5432;Database=ledgerx;Username=wallet;Password=wallet123"
   },
   "Logging": {
     "LogLevel": {
@@ -506,7 +506,7 @@ Test summary: total: 16, failed: 0, succeeded: 16, skipped: 0
 
 ```yaml
 environment:
-  - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=dinowallet;Username=wallet;Password=wallet123
+  - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=ledgerx;Username=wallet;Password=wallet123
   - ASPNETCORE_ENVIRONMENT=Development
 ```
 
@@ -520,18 +520,18 @@ A complete Postman collection is included for testing all API endpoints.
 
 | File | Description |
 |------|-------------|
-| `postman/DinoWallet.postman_collection.json` | Full API collection with tests |
-| `postman/DinoWallet.Local.postman_environment.json` | Local environment (port 5000) |
-| `postman/DinoWallet.Docker.postman_environment.json` | Docker environment (port 8080) |
+| `postman/LedgerX.postman_collection.json` | Full API collection with tests |
+| `postman/LedgerX.Local.postman_environment.json` | Local environment (port 5000) |
+| `postman/LedgerX.Docker.postman_environment.json` | Docker environment (port 8080) |
 
 ### Import & Setup
 
 1. **Import Collection:**
-   - Open Postman → Import → Select `postman/DinoWallet.postman_collection.json`
+   - Open Postman → Import → Select `postman/LedgerX.postman_collection.json`
 
 2. **Import Environment:**
-   - Import `postman/DinoWallet.Local.postman_environment.json` or
-   - Import `postman/DinoWallet.Docker.postman_environment.json`
+   - Import `postman/LedgerX.Local.postman_environment.json` or
+   - Import `postman/LedgerX.Docker.postman_environment.json`
 
 3. **Select Environment:**
    - Choose the appropriate environment from the dropdown
@@ -542,7 +542,7 @@ A complete Postman collection is included for testing all API endpoints.
 ### Collection Structure
 
 ```
-DinoWallet API
+LedgerX API
 ├── Health & Setup
 │   └── Health Check
 ├── Accounts
@@ -574,9 +574,9 @@ DinoWallet API
 ## 📁 Project Structure
 
 ```
-DinoWallet/
+LedgerX/
 ├── src/
-│   └── DinoWallet.Api/
+│   └── LedgerX.Api/
 │       ├── Controllers/
 │       │   ├── AccountsController.cs
 │       │   └── WalletController.cs
@@ -605,16 +605,16 @@ DinoWallet/
 │       ├── Program.cs
 │       └── appsettings.json
 ├── tests/
-│   └── DinoWallet.IntegrationTests/
+│   └── LedgerX.IntegrationTests/
 │       ├── WalletApiTests.cs
 │       └── WalletApiFixture.cs
 ├── postman/
-│   ├── DinoWallet.postman_collection.json
-│   ├── DinoWallet.Local.postman_environment.json
-│   └── DinoWallet.Docker.postman_environment.json
+│   ├── LedgerX.postman_collection.json
+│   ├── LedgerX.Local.postman_environment.json
+│   └── LedgerX.Docker.postman_environment.json
 ├── docker-compose.yml
 ├── Dockerfile
-├── DinoWallet.sln
+├── LedgerX.sln
 └── README.md
 ```
 

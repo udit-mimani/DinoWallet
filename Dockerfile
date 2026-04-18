@@ -3,13 +3,13 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
 # Copy project files and restore (layer-cached until .csproj changes)
-COPY DinoWallet.slnx ./
-COPY src/DinoWallet.Api/DinoWallet.Api.csproj ./src/DinoWallet.Api/
-RUN dotnet restore src/DinoWallet.Api/DinoWallet.Api.csproj
+COPY LedgerX.slnx ./
+COPY src/LedgerX.Api/LedgerX.Api.csproj ./src/LedgerX.Api/
+RUN dotnet restore src/LedgerX.Api/LedgerX.Api.csproj
 
 # Copy everything and publish
 COPY . .
-RUN dotnet publish src/DinoWallet.Api \
+RUN dotnet publish src/LedgerX.Api \
     -c Release \
     -o /publish \
     /p:GenerateDocumentationFile=true
@@ -28,4 +28,4 @@ EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 ENV ASPNETCORE_ENVIRONMENT=Docker
 
-ENTRYPOINT ["dotnet", "DinoWallet.Api.dll"]
+ENTRYPOINT ["dotnet", "LedgerX.Api.dll"]

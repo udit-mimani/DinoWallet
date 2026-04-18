@@ -1,10 +1,10 @@
-# 🦕 DinoWallet API - Test Results
+# 🦕 LedgerX API - Test Results
 
 This document contains the results of testing all API endpoints using the Postman collection.
 
 **Test Date:** February 20, 2025  
 **Environment:** Docker (localhost:8080)  
-**Collection:** DinoWallet.postman_collection.json
+**Collection:** LedgerX.postman_collection.json
 
 ---
 
@@ -989,5 +989,5 @@ Test summary: total: 16, failed: 0, succeeded: 16, skipped: 0, duration: 15.9s
 ---
 
 <p align="center">
-  <strong>DinoWallet API - All Tests Passed! 🎉</strong>
+  <strong>LedgerX API - All Tests Passed! 🎉</strong>
 </p>

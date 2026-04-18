@@ -1,8 +1,0 @@
-<Solution>
-  <Folder Name="/src/">
-    <Project Path="src/DinoWallet.Api/DinoWallet.Api.csproj" />
-  </Folder>
-  <Folder Name="/tests/">
-    <Project Path="tests/DinoWallet.IntegrationTests/DinoWallet.IntegrationTests.csproj" />
-  </Folder>
-</Solution>

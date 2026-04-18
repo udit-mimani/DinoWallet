@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LedgerX.Api/LedgerX.Api.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/LedgerX.IntegrationTests/LedgerX.IntegrationTests.csproj" />
+  </Folder>
+</Solution>
