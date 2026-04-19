@@ -1,7 +1,7 @@
 version: "3.9"
 
 # =============================================================================
-# Dino Ventures – Wallet Service
+# LedgerX – Wallet Service
 # Usage: docker compose up --build
 # Swagger UI: http://localhost:8080/swagger
 # =============================================================================

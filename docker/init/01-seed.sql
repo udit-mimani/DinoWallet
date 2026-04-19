@@ -1,5 +1,5 @@
 -- =============================================================================
--- Dino Ventures — Wallet Service Seed Data
+-- LedgerX — Wallet Service Seed Data
 -- Run after migrations: psql -d ledgerx -f seed.sql
 -- =============================================================================
 

@@ -12,7 +12,7 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new()
     {
-        Title = "Dino Ventures � Wallet Service",
+        Title = "LedgerX - Virtual Wallet Service",
         Version = "v1",
         Description = """
             Internal wallet service for managing virtual credits (Gold Coins, Diamonds, Loyalty Points).
